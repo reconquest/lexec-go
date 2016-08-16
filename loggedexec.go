@@ -242,6 +242,12 @@ func (execution *Execution) String() string {
 	)
 }
 
+func (execution *Execution) NoLog() *Execution {
+	execution.logger = Loggerf(func(string, ...interface{}) {})
+
+	return execution
+}
+
 func (execution *Execution) setup() error {
 	lock := &sync.Mutex{}
 
