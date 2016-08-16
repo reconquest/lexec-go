@@ -8,7 +8,7 @@ import (
 	"os"
 
 	"github.com/reconquest/go-loggedexec"
-	"github.com/zazab/hierr"
+	"github.com/seletskiy/hierr"
 )
 
 func ExampleLoggedExec() {

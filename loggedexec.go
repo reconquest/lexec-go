@@ -10,7 +10,7 @@ import (
 	"github.com/reconquest/go-callbackwriter"
 	"github.com/reconquest/go-lineflushwriter"
 	"github.com/reconquest/go-nopio"
-	"github.com/zazab/hierr"
+	"github.com/seletskiy/hierr"
 )
 
 // Executiion represents command prepared for the run.
