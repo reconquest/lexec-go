@@ -85,25 +85,29 @@ func New(
 // SetStdout sets writer to store stdout.
 //
 // If not called, internal buffer will be used.
-func (execution *Execution) SetStdout(target io.Writer) {
+func (execution *Execution) SetStdout(target io.Writer) *Execution {
 	execution.stdout = struct {
 		io.Reader
 		io.Writer
 	}{
 		Writer: target,
 	}
+
+	return execution
 }
 
 // SetStderr sets writer to store stderr.
 //
 // If not called, internal buffer will be used.
-func (execution *Execution) SetStderr(target io.Writer) {
+func (execution *Execution) SetStderr(target io.Writer) *Execution {
 	execution.stderr = struct {
 		io.Reader
 		io.Writer
 	}{
 		Writer: target,
 	}
+
+	return execution
 }
 
 // GetStdout returns reader which is linked to the program stdout.
@@ -122,13 +126,15 @@ func (execution *Execution) GetStdin() io.WriteCloser {
 }
 
 // SetStdin sets reader which will be used as program stdin.
-func (execution *Execution) SetStdin(source io.Reader) {
+func (execution *Execution) SetStdin(source io.Reader) *Execution {
 	execution.stdin = struct {
 		io.Reader
 		io.WriteCloser
 	}{
 		Reader: source,
 	}
+
+	return execution
 }
 
 // Starts will start command, but will not wait for execution.
