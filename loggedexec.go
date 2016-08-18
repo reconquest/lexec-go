@@ -52,9 +52,9 @@ type Logger func(command []string, stream Stream, data []byte)
 func Loggerf(logger func(string, ...interface{})) Logger {
 	return func(command []string, stream Stream, data []byte) {
 		if stream == InternalDebug {
-			logger(`<exec> %+v %s`, command, string(data))
+			logger(`<exec> %q %s`, command, string(data))
 		} else {
-			logger(`<%s> {%s} %s`, stream, command[0], string(data))
+			logger(`{%s} <%s> %s`, command[0], stream, string(data))
 		}
 	}
 }
