@@ -152,7 +152,7 @@ func (execution *Execution) Start() error {
 		return hierr.Errorf(
 			err,
 			`can't start command: %s`,
-			execution,
+			execution.Start(),
 		)
 	}
 
@@ -180,7 +180,9 @@ func (execution *Execution) Wait() error {
 			)),
 		)
 
-		return err
+		return hierr.Errorf(
+			err, "%s", execution.String(),
+		)
 	}
 
 	execution.logger(
@@ -242,7 +244,7 @@ func (execution *Execution) Output() ([]byte, []byte, error) {
 
 // String returns string representation of command.
 func (execution *Execution) String() string {
-	return fmt.Sprintf(`%#v`,
+	return fmt.Sprintf(`%q`,
 		append(
 			[]string{execution.command.Path},
 			execution.command.Args...,
