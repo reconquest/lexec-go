@@ -7,7 +7,7 @@ Will duplicate stdout and stderr into program log.
 ```go
 logger := log.New(os.Stdout, `LOG: `, 0)
 
-cmd := loggedexec.New(loggedexec.Loggerf(logger.Printf), `wc`, `-l`)
+cmd := lexec.New(lexec.Loggerf(logger.Printf), `wc`, `-l`)
 
 cmd.SetStdin(bytes.NewBufferString("1\n2\n3\n"))
 

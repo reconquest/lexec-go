@@ -1,4 +1,4 @@
-package loggedexec
+package lexec
 
 import (
 	"bytes"
@@ -11,9 +11,9 @@ import (
 	"syscall"
 
 	"github.com/kovetskiy/executil"
-	"github.com/reconquest/go-callbackwriter"
-	"github.com/reconquest/go-lineflushwriter"
-	"github.com/reconquest/go-nopio"
+	"github.com/reconquest/callbackwriter-go"
+	"github.com/reconquest/lineflushwriter-go"
+	"github.com/reconquest/nopio-go"
 	"github.com/seletskiy/hierr"
 )
 

@@ -1,4 +1,4 @@
-package loggedexec
+package lexec
 
 import (
 	"bytes"
