@@ -7,6 +7,7 @@ import (
 	"log"
 	"os"
 
+	"github.com/reconquest/lexec-go"
 	"github.com/seletskiy/hierr"
 )
 
