@@ -180,9 +180,10 @@ func (execution *Execution) Wait() error {
 			)),
 		)
 
-		return hierr.Errorf(
-			err, "%s", execution.String(),
-		)
+		return executil.Error{
+			RunErr: err,
+			Cmd:    execution.command,
+		}
 	}
 
 	execution.logger(
