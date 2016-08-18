@@ -17,7 +17,7 @@ import (
 	"github.com/seletskiy/hierr"
 )
 
-// Executiion represents command prepared for the run.
+// Execution represents command prepared for the run.
 type Execution struct {
 	command *exec.Cmd
 
@@ -25,29 +25,17 @@ type Execution struct {
 	stdout io.ReadWriter
 	stderr io.ReadWriter
 
+	combinedStreams []StreamData
+
 	logger Logger
 
 	closer func()
 }
 
-// Stream represents execution output stream.
-type Stream string
-
-const (
-	// Stdout is ID for execution stdout.
-	Stdout Stream = `stdout`
-
-	// Stdout is ID for execution stderr.
-	Stderr Stream = `stderr`
-
-	// InternalDebug is ID for logging internal debug messages.
-	InternalDebug Stream = `debug`
-)
-
 // Logger represents type of function, which is considered logger by `New`.
 type Logger func(command []string, stream Stream, data []byte)
 
-// Callbackf will turn typical Somethingf() logger function into acceptible
+// Loggerf will turn typical Somethingf() logger function into acceptible
 // Logger function.
 func Loggerf(logger func(string, ...interface{})) Logger {
 	return func(command []string, stream Stream, data []byte) {
@@ -59,7 +47,7 @@ func Loggerf(logger func(string, ...interface{})) Logger {
 	}
 }
 
-// New creates new execution object, that is used to start command and setup
+// New creates new execution object, that is used to start command and setupStreams
 // stdout/stderr/stdin streams.
 //
 // stdout/stderr will be duplicated to specified logger. Each logged line will be
@@ -67,11 +55,7 @@ func Loggerf(logger func(string, ...interface{})) Logger {
 // named methods.
 //
 // Further arguments are symmetric to `exec.Command`.
-func New(
-	logger Logger,
-	name string,
-	args ...string,
-) *Execution {
+func New(logger Logger, name string, args ...string) *Execution {
 	execution := &Execution{
 		command: exec.Command(name, args...),
 
@@ -80,6 +64,7 @@ func New(
 
 	execution.stdout = &bytes.Buffer{}
 	execution.stderr = &bytes.Buffer{}
+	execution.combinedStreams = []StreamData{}
 
 	return execution
 }
@@ -143,7 +128,7 @@ func (execution *Execution) SetStdin(source io.Reader) *Execution {
 func (execution *Execution) Start() error {
 	execution.logger(execution.command.Args, InternalDebug, []byte(`start`))
 
-	err := execution.setup()
+	err := execution.setupStreams()
 	if err != nil {
 		return err
 	}
@@ -180,7 +165,7 @@ func (execution *Execution) Wait() error {
 			)),
 		)
 
-		return executil.Error{
+		return &executil.Error{
 			RunErr: err,
 			Cmd:    execution.command,
 		}
@@ -259,7 +244,7 @@ func (execution *Execution) NoLog() *Execution {
 	return execution
 }
 
-func (execution *Execution) setup() error {
+func (execution *Execution) setupStreams() error {
 	lock := &sync.Mutex{}
 
 	loggerize := func(
@@ -282,7 +267,10 @@ func (execution *Execution) setup() error {
 			true,
 		)
 
-		return io.MultiWriter(output, logger), logger.Close
+		return io.MultiWriter(
+			getStreamWriter(&execution.combinedStreams, stream),
+			output, logger,
+		), logger.Close
 	}
 
 	var (
@@ -338,4 +326,8 @@ func (execution *Execution) ProcessState() *os.ProcessState {
 
 func (execution *Execution) SysProcAttr() *syscall.SysProcAttr {
 	return execution.command.SysProcAttr
+}
+
+func (execution *Execution) GetStreamsData() []StreamData {
+	return execution.combinedStreams
 }
