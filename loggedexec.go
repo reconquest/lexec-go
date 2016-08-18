@@ -5,8 +5,10 @@ import (
 	"fmt"
 	"io"
 	"io/ioutil"
+	"os"
 	"os/exec"
 	"sync"
+	"syscall"
 
 	"github.com/kovetskiy/executil"
 	"github.com/reconquest/go-callbackwriter"
@@ -321,4 +323,16 @@ func (execution *Execution) setup() error {
 	}
 
 	return nil
+}
+
+func (execution *Execution) Process() *os.Process {
+	return execution.command.Process
+}
+
+func (execution *Execution) ProcessState() *os.ProcessState {
+	return execution.command.ProcessState
+}
+
+func (execution *Execution) SysProcAttr() *syscall.SysProcAttr {
+	return execution.command.SysProcAttr
 }
