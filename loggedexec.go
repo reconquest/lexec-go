@@ -25,7 +25,8 @@ type Execution struct {
 	stdout io.ReadWriter
 	stderr io.ReadWriter
 
-	combinedStreams []StreamData
+	combinedStreams      []StreamData
+	combinedStreamsMutex *sync.Mutex
 
 	logger Logger
 
@@ -65,6 +66,7 @@ func New(logger Logger, name string, args ...string) *Execution {
 	execution.stdout = &bytes.Buffer{}
 	execution.stderr = &bytes.Buffer{}
 	execution.combinedStreams = []StreamData{}
+	execution.combinedStreamsMutex = &sync.Mutex{}
 
 	return execution
 }
@@ -268,7 +270,11 @@ func (execution *Execution) setupStreams() error {
 		)
 
 		return io.MultiWriter(
-			getStreamWriter(&execution.combinedStreams, stream),
+			getStreamWriter(
+				&execution.combinedStreams,
+				stream,
+				execution.combinedStreamsMutex,
+			),
 			output, logger,
 		), logger.Close
 	}

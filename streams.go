@@ -2,6 +2,7 @@ package lexec
 
 import (
 	"io"
+	"sync"
 )
 
 // Stream represents execution output stream.
@@ -29,9 +30,13 @@ type StreamData struct {
 type streamDataWriter struct {
 	output *[]StreamData
 	stream Stream
+	mutex  *sync.Mutex
 }
 
 func (writer *streamDataWriter) Write(data []byte) (int, error) {
+	writer.mutex.Lock()
+	defer writer.mutex.Unlock()
+
 	*writer.output = append(*writer.output, StreamData{
 		Stream: writer.stream,
 		Data:   data,
@@ -41,10 +46,11 @@ func (writer *streamDataWriter) Write(data []byte) (int, error) {
 }
 
 func getStreamWriter(
-	output *[]StreamData, stream Stream,
+	output *[]StreamData, stream Stream, mutex *sync.Mutex,
 ) io.Writer {
 	return &streamDataWriter{
 		output: output,
 		stream: stream,
+		mutex:  mutex,
 	}
 }
