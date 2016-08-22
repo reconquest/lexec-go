@@ -14,7 +14,7 @@ import (
 	"github.com/reconquest/callbackwriter-go"
 	"github.com/reconquest/lineflushwriter-go"
 	"github.com/reconquest/nopio-go"
-	"github.com/seletskiy/hierr"
+	ser "github.com/reconquest/ser-go"
 )
 
 // Execution represents command prepared for the run.
@@ -136,7 +136,7 @@ func (execution *Execution) Start() error {
 	}
 
 	if err := execution.command.Start(); err != nil {
-		return hierr.Errorf(
+		return ser.Errorf(
 			err,
 			`can't start command: %s`,
 			execution.Start(),
@@ -151,7 +151,7 @@ func (execution *Execution) Wait() error {
 	err := execution.command.Wait()
 	if err != nil {
 		if !executil.IsExitError(err) {
-			return hierr.Errorf(
+			return ser.Errorf(
 				err,
 				`can't finish command execution: %s`,
 				execution.String(),
@@ -210,7 +210,7 @@ func (execution *Execution) Output() ([]byte, []byte, error) {
 
 		stdout, err = ioutil.ReadAll(execution.stdout)
 		if err != nil {
-			return nil, nil, hierr.Errorf(
+			return nil, nil, ser.Errorf(
 				err,
 				`can't read execution stdout: %s`,
 				execution.String(),
@@ -219,7 +219,7 @@ func (execution *Execution) Output() ([]byte, []byte, error) {
 
 		stderr, err = ioutil.ReadAll(execution.stderr)
 		if err != nil {
-			return nil, nil, hierr.Errorf(
+			return nil, nil, ser.Errorf(
 				err,
 				`can't read execution stderr: %s`,
 				execution.String(),
@@ -302,7 +302,7 @@ func (execution *Execution) setupStreams() error {
 	if execution.stdin == nil {
 		stdin, err := execution.command.StdinPipe()
 		if err != nil {
-			return hierr.Errorf(
+			return ser.Errorf(
 				err,
 				`can't get stdin pipe from command: %s`,
 				execution,
