@@ -27,28 +27,33 @@ type StreamData struct {
 	Data []byte
 }
 
-type streamDataWriter struct {
+type streamWriter struct {
 	output *[]StreamData
 	stream Stream
 	mutex  *sync.Mutex
 }
 
-func (writer *streamDataWriter) Write(data []byte) (int, error) {
+func (writer *streamWriter) Write(data []byte) (int, error) {
 	writer.mutex.Lock()
 	defer writer.mutex.Unlock()
 
+	indirected := make([]byte, len(data))
+	copy(indirected, data)
+
 	*writer.output = append(*writer.output, StreamData{
 		Stream: writer.stream,
-		Data:   data,
+		Data:   indirected,
 	})
 
-	return len(data), nil
+	return len(indirected), nil
 }
 
-func getStreamWriter(
-	output *[]StreamData, stream Stream, mutex *sync.Mutex,
+func newStreamWriter(
+	output *[]StreamData,
+	mutex *sync.Mutex,
+	stream Stream,
 ) io.Writer {
-	return &streamDataWriter{
+	return &streamWriter{
 		output: output,
 		stream: stream,
 		mutex:  mutex,

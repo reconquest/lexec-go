@@ -14,7 +14,7 @@ import (
 	"github.com/reconquest/callbackwriter-go"
 	"github.com/reconquest/lineflushwriter-go"
 	"github.com/reconquest/nopio-go"
-	ser "github.com/reconquest/ser-go"
+	"github.com/reconquest/ser-go"
 )
 
 // Execution represents command prepared for the run.
@@ -25,8 +25,7 @@ type Execution struct {
 	stdout io.ReadWriter
 	stderr io.ReadWriter
 
-	combinedStreams      []StreamData
-	combinedStreamsMutex *sync.Mutex
+	combinedStreams []StreamData
 
 	logger Logger
 
@@ -66,7 +65,6 @@ func New(logger Logger, name string, args ...string) *Execution {
 	execution.stdout = &bytes.Buffer{}
 	execution.stderr = &bytes.Buffer{}
 	execution.combinedStreams = []StreamData{}
-	execution.combinedStreamsMutex = &sync.Mutex{}
 
 	return execution
 }
@@ -247,7 +245,10 @@ func (execution *Execution) NoLog() *Execution {
 }
 
 func (execution *Execution) setupStreams() error {
-	lock := &sync.Mutex{}
+	var (
+		streamMutex   = &sync.Mutex{}
+		combinedMutex = &sync.Mutex{}
+	)
 
 	loggerize := func(
 		stream Stream,
@@ -265,15 +266,15 @@ func (execution *Execution) setupStreams() error {
 				},
 				nil,
 			),
-			lock,
+			streamMutex,
 			true,
 		)
 
 		return io.MultiWriter(
-			getStreamWriter(
+			newStreamWriter(
 				&execution.combinedStreams,
+				combinedMutex,
 				stream,
-				execution.combinedStreamsMutex,
 			),
 			output, logger,
 		), logger.Close
