@@ -86,8 +86,7 @@ func Loggerf(logger func(string, ...interface{})) Logger {
 // prefixed with `<stdXXX> {command} `. Prefix can be overrided via likely
 // named methods.
 func NewExec(logger Logger, cmd *exec.Cmd) *Execution {
-	return nil
-	//return New(logger, command{cmd})
+	return New(logger, &command{cmd})
 }
 
 // New same as NewExec but second argument must implement interface Command.
