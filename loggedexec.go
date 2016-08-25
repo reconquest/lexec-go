@@ -19,7 +19,7 @@ import (
 
 // Execution represents command prepared for the run.
 type Execution struct {
-	command *exec.Cmd
+	command Command
 
 	stdin  io.ReadWriteCloser
 	stdout io.ReadWriter
@@ -30,6 +30,38 @@ type Execution struct {
 	logger Logger
 
 	closer func()
+}
+
+type Command interface {
+	Run() error
+	Start() error
+	Wait() error
+	SetStdin(io.Reader)
+	SetStdout(io.Writer)
+	SetStderr(io.Writer)
+	StdinPipe() (io.WriteCloser, error)
+
+	GetArgs() []string
+}
+
+type command struct {
+	*exec.Cmd
+}
+
+func (command *command) GetArgs() []string {
+	return command.Args
+}
+
+func (command *command) SetStdout(target io.Writer) {
+	command.Stdout = target
+}
+
+func (command *command) SetStderr(target io.Writer) {
+	command.Stderr = target
+}
+
+func (command *command) SetStdin(target io.Reader) {
+	command.Stdin = target
 }
 
 // Logger represents type of function, which is considered logger by `New`.
@@ -47,19 +79,22 @@ func Loggerf(logger func(string, ...interface{})) Logger {
 	}
 }
 
-// New creates new execution object, that is used to start command and setupStreams
-// stdout/stderr/stdin streams.
+// NewExec creates new execution object, that is used to start command and
+// setupStreams stdout/stderr/stdin streams.
 //
 // stdout/stderr will be duplicated to specified logger. Each logged line will be
 // prefixed with `<stdXXX> {command} `. Prefix can be overrided via likely
 // named methods.
-//
-// Further arguments are symmetric to `exec.Command`.
-func New(logger Logger, name string, args ...string) *Execution {
-	execution := &Execution{
-		command: exec.Command(name, args...),
+func NewExec(logger Logger, cmd *exec.Cmd) *Execution {
+	return nil
+	//return New(logger, command{cmd})
+}
 
-		logger: logger,
+// New same as NewExec but second argument must implement interface Command.
+func New(logger Logger, cmd Command) *Execution {
+	execution := &Execution{
+		command: cmd,
+		logger:  logger,
 	}
 
 	execution.stdout = &bytes.Buffer{}
@@ -126,7 +161,11 @@ func (execution *Execution) SetStdin(source io.Reader) *Execution {
 
 // Starts will start command, but will not wait for execution.
 func (execution *Execution) Start() error {
-	execution.logger(execution.command.Args, InternalDebug, []byte(`start`))
+	execution.logger(
+		execution.command.GetArgs(),
+		InternalDebug,
+		[]byte(`start`),
+	)
 
 	err := execution.setupStreams()
 	if err != nil {
@@ -157,7 +196,7 @@ func (execution *Execution) Wait() error {
 		}
 
 		execution.logger(
-			execution.command.Args,
+			execution.command.GetArgs(),
 			InternalDebug,
 			[]byte(fmt.Sprintf(
 				`exited with code %d`,
@@ -172,7 +211,7 @@ func (execution *Execution) Wait() error {
 	}
 
 	execution.logger(
-		execution.command.Args,
+		execution.command.GetArgs(),
 		InternalDebug,
 		[]byte(`exited with code 0`),
 	)
@@ -230,12 +269,7 @@ func (execution *Execution) Output() ([]byte, []byte, error) {
 
 // String returns string representation of command.
 func (execution *Execution) String() string {
-	return fmt.Sprintf(`%q`,
-		append(
-			[]string{execution.command.Path},
-			execution.command.Args...,
-		),
-	)
+	return fmt.Sprintf(`%q`, execution.command.GetArgs())
 }
 
 func (execution *Execution) NoLog() *Execution {
@@ -259,7 +293,7 @@ func (execution *Execution) setupStreams() error {
 				nopio.NopWriteCloser{},
 				func(data []byte) {
 					execution.logger(
-						execution.command.Args,
+						execution.command.GetArgs(),
 						stream,
 						bytes.TrimRight(data, "\n"),
 					)
@@ -280,20 +314,18 @@ func (execution *Execution) setupStreams() error {
 		), logger.Close
 	}
 
-	var (
-		stdoutCloser func() error
-		stderrCloser func() error
-	)
-
-	execution.command.Stdout, stdoutCloser = loggerize(
+	stdout, stdoutCloser := loggerize(
 		Stdout,
 		execution.stdout,
 	)
 
-	execution.command.Stderr, stderrCloser = loggerize(
+	stderr, stderrCloser := loggerize(
 		Stderr,
 		execution.stderr,
 	)
+
+	execution.command.SetStdout(stdout)
+	execution.command.SetStderr(stderr)
 
 	execution.closer = func() {
 		_ = stdoutCloser()
@@ -317,22 +349,36 @@ func (execution *Execution) setupStreams() error {
 			WriteCloser: stdin,
 		}
 	} else {
-		execution.command.Stdin = execution.stdin
+		execution.command.SetStdin(execution.stdin)
 	}
 
 	return nil
 }
 
 func (execution *Execution) Process() *os.Process {
-	return execution.command.Process
+	// this wrapper needs only in case when instead of exec.Command has been
+	// passed runcmd.Remote
+	if cmd, ok := execution.command.(*command); ok {
+		return cmd.Process
+	}
+
+	return nil
 }
 
 func (execution *Execution) ProcessState() *os.ProcessState {
-	return execution.command.ProcessState
+	if cmd, ok := execution.command.(*command); ok {
+		return cmd.ProcessState
+	}
+
+	return nil
 }
 
 func (execution *Execution) SysProcAttr() *syscall.SysProcAttr {
-	return execution.command.SysProcAttr
+	if cmd, ok := execution.command.(*command); ok {
+		return cmd.SysProcAttr
+	}
+
+	return nil
 }
 
 func (execution *Execution) GetStreamsData() []StreamData {
