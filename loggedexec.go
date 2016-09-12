@@ -10,7 +10,7 @@ import (
 	"sync"
 	"syscall"
 
-	"github.com/kovetskiy/executil"
+	"github.com/reconquest/executil-go"
 	"github.com/reconquest/callbackwriter-go"
 	"github.com/reconquest/lineflushwriter-go"
 	"github.com/reconquest/nopio-go"

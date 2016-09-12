@@ -8,7 +8,7 @@ import (
 	"os"
 
 	"github.com/reconquest/lexec-go"
-	"github.com/seletskiy/hierr"
+	"github.com/reconquest/hierr-go"
 )
 
 func ExampleLoggedExec() {
