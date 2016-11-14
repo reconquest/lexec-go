@@ -10,8 +10,8 @@ import (
 	"sync"
 	"syscall"
 
-	"github.com/reconquest/executil-go"
 	"github.com/reconquest/callbackwriter-go"
+	"github.com/reconquest/executil-go"
 	"github.com/reconquest/lineflushwriter-go"
 	"github.com/reconquest/nopio-go"
 	"github.com/reconquest/ser-go"
@@ -43,6 +43,10 @@ type Command interface {
 
 	GetArgs() []string
 }
+
+var (
+	_ Command = (*command)(nil)
+)
 
 type command struct {
 	*exec.Cmd
@@ -175,7 +179,7 @@ func (execution *Execution) Start() error {
 		return ser.Errorf(
 			err,
 			`can't start command: %s`,
-			execution.Start(),
+			execution.String(),
 		)
 	}
 
