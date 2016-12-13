@@ -16,7 +16,7 @@ const (
 	Stderr Stream = `stderr`
 
 	// InternalDebug is ID for logging internal debug messages.
-	InternalDebug Stream = `debug`
+	InternalDebug Stream = `exec`
 )
 
 // StreamData represents execution output stream data.

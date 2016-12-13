@@ -40,6 +40,8 @@ type Command interface {
 	SetStdout(io.Writer)
 	SetStderr(io.Writer)
 	StdinPipe() (io.WriteCloser, error)
+	StdoutPipe() (io.Reader, error)
+	StderrPipe() (io.Reader, error)
 
 	GetArgs() []string
 }
@@ -68,6 +70,18 @@ func (command *command) SetStdin(target io.Reader) {
 	command.Stdin = target
 }
 
+func (command *command) StdoutPipe() (io.Reader, error) {
+	pipe, err := command.Cmd.StdoutPipe()
+
+	return pipe.(io.Reader), err
+}
+
+func (command *command) StderrPipe() (io.Reader, error) {
+	pipe, err := command.Cmd.StderrPipe()
+
+	return pipe.(io.Reader), err
+}
+
 // Logger represents type of function, which is considered logger by `New`.
 type Logger func(command []string, stream Stream, data []byte)
 
@@ -76,7 +90,7 @@ type Logger func(command []string, stream Stream, data []byte)
 func Loggerf(logger func(string, ...interface{})) Logger {
 	return func(command []string, stream Stream, data []byte) {
 		if stream == InternalDebug {
-			logger(`<exec> %q %s`, command, string(data))
+			logger(`{%s} <exec> %q %s`, command[0], command, string(data))
 		} else {
 			logger(`{%s} <%s> %s`, command[0], stream, string(data))
 		}
@@ -95,6 +109,10 @@ func NewExec(logger Logger, cmd *exec.Cmd) *Execution {
 
 // New same as NewExec but second argument must implement interface Command.
 func New(logger Logger, cmd Command) *Execution {
+	if logger == nil {
+		logger = Loggerf(func(string, ...interface{}) {})
+	}
+
 	execution := &Execution{
 		command: cmd,
 		logger:  logger,
@@ -102,6 +120,7 @@ func New(logger Logger, cmd Command) *Execution {
 
 	execution.stdout = &bytes.Buffer{}
 	execution.stderr = &bytes.Buffer{}
+
 	execution.combinedStreams = []StreamData{}
 
 	return execution
@@ -135,6 +154,14 @@ func (execution *Execution) SetStderr(target io.Writer) *Execution {
 	return execution
 }
 
+func (execution *Execution) StdoutPipe() (io.Reader, error) {
+	return execution.command.StdoutPipe()
+}
+
+func (execution *Execution) StderrPipe() (io.Reader, error) {
+	return execution.command.StderrPipe()
+}
+
 // GetStdout returns reader which is linked to the program stdout.
 func (execution *Execution) GetStdout() io.Reader {
 	return execution.stdout.(io.Reader)
@@ -153,8 +180,8 @@ func (execution *Execution) GetStdin() io.WriteCloser {
 // SetStdin sets reader which will be used as program stdin.
 func (execution *Execution) SetStdin(source io.Reader) *Execution {
 	execution.stdin = struct {
-		io.Reader
 		io.WriteCloser
+		io.Reader
 	}{
 		Reader: source,
 	}
@@ -164,11 +191,13 @@ func (execution *Execution) SetStdin(source io.Reader) *Execution {
 
 // Starts will start command, but will not wait for execution.
 func (execution *Execution) Start() error {
-	execution.logger(
-		execution.command.GetArgs(),
-		InternalDebug,
-		[]byte(`start`),
-	)
+	if execution.logger != nil {
+		execution.logger(
+			execution.command.GetArgs(),
+			InternalDebug,
+			[]byte(`start`),
+		)
+	}
 
 	err := execution.setupStreams()
 	if err != nil {
@@ -198,14 +227,16 @@ func (execution *Execution) Wait() error {
 			)
 		}
 
-		execution.logger(
-			execution.command.GetArgs(),
-			InternalDebug,
-			[]byte(fmt.Sprintf(
-				`exited with code %d`,
-				executil.GetExitStatus(err),
-			)),
-		)
+		if execution.logger != nil {
+			execution.logger(
+				execution.command.GetArgs(),
+				InternalDebug,
+				[]byte(fmt.Sprintf(
+					`exit code %d`,
+					executil.GetExitStatus(err),
+				)),
+			)
+		}
 
 		return &executil.Error{
 			RunErr: err,
@@ -213,13 +244,17 @@ func (execution *Execution) Wait() error {
 		}
 	}
 
-	execution.logger(
-		execution.command.GetArgs(),
-		InternalDebug,
-		[]byte(`exited with code 0`),
-	)
+	if execution.closer != nil {
+		execution.closer()
+	}
 
-	execution.closer()
+	if execution.logger != nil {
+		execution.logger(
+			execution.command.GetArgs(),
+			InternalDebug,
+			[]byte(`exit code 0`),
+		)
+	}
 
 	return nil
 }
@@ -276,7 +311,7 @@ func (execution *Execution) String() string {
 }
 
 func (execution *Execution) NoLog() *Execution {
-	execution.logger = Loggerf(func(string, ...interface{}) {})
+	execution.logger = nil
 
 	return execution
 }
@@ -317,22 +352,27 @@ func (execution *Execution) setupStreams() error {
 		), logger.Close
 	}
 
-	stdout, stdoutCloser := loggerize(
-		Stdout,
-		execution.stdout,
-	)
+	if execution.logger != nil {
+		stdout, stdoutCloser := loggerize(
+			Stdout,
+			execution.stdout,
+		)
 
-	stderr, stderrCloser := loggerize(
-		Stderr,
-		execution.stderr,
-	)
+		stderr, stderrCloser := loggerize(
+			Stderr,
+			execution.stderr,
+		)
 
-	execution.command.SetStdout(stdout)
-	execution.command.SetStderr(stderr)
+		execution.command.SetStdout(stdout)
+		execution.command.SetStderr(stderr)
 
-	execution.closer = func() {
-		_ = stdoutCloser()
-		_ = stderrCloser()
+		execution.closer = func() {
+			_ = stdoutCloser()
+			_ = stderrCloser()
+		}
+	} else {
+		execution.command.SetStdout(execution.stdout)
+		execution.command.SetStderr(execution.stderr)
 	}
 
 	if execution.stdin == nil {

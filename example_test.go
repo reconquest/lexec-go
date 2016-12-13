@@ -6,15 +6,19 @@ import (
 	"io/ioutil"
 	"log"
 	"os"
+	"os/exec"
 
-	"github.com/reconquest/lexec-go"
 	"github.com/reconquest/hierr-go"
+	"github.com/reconquest/lexec-go"
 )
 
 func ExampleLoggedExec() {
 	logger := log.New(os.Stdout, `LOG: `, 0)
 
-	cmd := lexec.New(lexec.Loggerf(logger.Printf), `wc`, `-l`)
+	cmd := lexec.NewExec(
+		lexec.Loggerf(logger.Printf),
+		exec.Command(`wc`, `-l`),
+	)
 
 	cmd.SetStdin(bytes.NewBufferString("1\n2\n3\n"))
 
@@ -37,6 +41,8 @@ func ExampleLoggedExec() {
 	fmt.Printf("OUT: %s\n", stdout)
 
 	// Output:
-	// LOG: <stdout> {wc} 3
+	// LOG: {wc} <exec> ["wc" "-l"] start
+	// LOG: {wc} <stdout> 3
+	// LOG: {wc} <exec> ["wc" "-l"] exit code 0
 	// OUT: 3
 }
