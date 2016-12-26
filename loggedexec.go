@@ -155,11 +155,25 @@ func (execution *Execution) SetStderr(target io.Writer) *Execution {
 }
 
 func (execution *Execution) StdoutPipe() (io.Reader, error) {
-	return execution.command.StdoutPipe()
+	pipe, err := execution.command.StdoutPipe()
+	if err != nil {
+		return nil, err
+	}
+
+	execution.stdout = nil
+
+	return pipe, nil
 }
 
 func (execution *Execution) StderrPipe() (io.Reader, error) {
-	return execution.command.StderrPipe()
+	pipe, err := execution.command.StderrPipe()
+	if err != nil {
+		return nil, err
+	}
+
+	execution.stderr = nil
+
+	return pipe, nil
 }
 
 // GetStdout returns reader which is linked to the program stdout.
@@ -353,26 +367,42 @@ func (execution *Execution) setupStreams() error {
 	}
 
 	if execution.logger != nil {
-		stdout, stdoutCloser := loggerize(
-			Stdout,
-			execution.stdout,
+		var (
+			stdout, stderr io.Writer
+
+			stdoutCloser, stderrCloser func() error
 		)
 
-		stderr, stderrCloser := loggerize(
-			Stderr,
-			execution.stderr,
-		)
+		if execution.stdout != nil {
+			stdout, stdoutCloser = loggerize(
+				Stdout,
+				execution.stdout,
+			)
 
-		execution.command.SetStdout(stdout)
-		execution.command.SetStderr(stderr)
+			execution.command.SetStdout(stdout)
+		}
+
+		if execution.stderr != nil {
+			stderr, stderrCloser = loggerize(
+				Stderr,
+				execution.stderr,
+			)
+
+			execution.command.SetStderr(stderr)
+		}
 
 		execution.closer = func() {
 			_ = stdoutCloser()
 			_ = stderrCloser()
 		}
 	} else {
-		execution.command.SetStdout(execution.stdout)
-		execution.command.SetStderr(execution.stderr)
+		if execution.stdout != nil {
+			execution.command.SetStdout(execution.stdout)
+		}
+
+		if execution.stderr != nil {
+			execution.command.SetStderr(execution.stderr)
+		}
 	}
 
 	if execution.stdin == nil {
