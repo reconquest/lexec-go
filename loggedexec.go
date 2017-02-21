@@ -392,8 +392,13 @@ func (execution *Execution) setupStreams() error {
 		}
 
 		execution.closer = func() {
-			_ = stdoutCloser()
-			_ = stderrCloser()
+			if stdoutCloser != nil {
+				_ = stdoutCloser()
+			}
+
+			if stderrCloser != nil {
+				_ = stderrCloser()
+			}
 		}
 	} else {
 		if execution.stdout != nil {
