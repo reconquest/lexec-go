@@ -8,7 +8,7 @@ import (
 	"os"
 	"os/exec"
 
-	"github.com/reconquest/hierr-go"
+	"github.com/reconquest/karma-go"
 	"github.com/reconquest/lexec-go"
 )
 
@@ -24,7 +24,7 @@ func ExampleLoggedExec() {
 
 	err := cmd.Run()
 	if err != nil {
-		log.Fatalln(hierr.Errorf(
+		log.Fatalln(karma.Format(
 			err,
 			`can't run example command`,
 		))
@@ -32,7 +32,7 @@ func ExampleLoggedExec() {
 
 	stdout, err := ioutil.ReadAll(cmd.GetStdout())
 	if err != nil {
-		log.Fatalln(hierr.Errorf(
+		log.Fatalln(karma.Format(
 			err,
 			`can't read command stdout`,
 		))

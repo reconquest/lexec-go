@@ -13,7 +13,7 @@ cmd.SetStdin(bytes.NewBufferString("1\n2\n3\n"))
 
 err := cmd.Run()
 if err != nil {
-    log.Fatalln(hierr.Errorf(
+    log.Fatalln(karma.Format(
         err,
         `can't run example command`,
     ))
@@ -21,7 +21,7 @@ if err != nil {
 
 stdout, err := ioutil.ReadAll(cmd.GetStdout())
 if err != nil {
-    log.Fatalln(hierr.Errorf(
+    log.Fatalln(karma.Format(
         err,
         `can't read command stdout`,
     ))
