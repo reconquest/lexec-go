@@ -7,11 +7,11 @@ import (
 	"io/ioutil"
 	"os"
 	"os/exec"
+	"strings"
 	"sync"
 	"syscall"
 
 	"github.com/reconquest/callbackwriter-go"
-	"github.com/reconquest/executil-go"
 	"github.com/reconquest/karma-go"
 	"github.com/reconquest/lineflushwriter-go"
 	"github.com/reconquest/nopio-go"
@@ -233,11 +233,23 @@ func (execution *Execution) Start() error {
 func (execution *Execution) Wait() error {
 	err := execution.command.Wait()
 	if err != nil {
-		if !executil.IsExitError(err) {
-			return karma.Format(
+		context := karma.Describe("command", execution.String())
+
+		var ok bool
+
+		if _, ok = err.(*exec.ExitError); !ok {
+			return context.Format(
 				err,
-				`can't finish command execution: %s`,
-				execution.String(),
+				`unable to start command`,
+			)
+		}
+
+		var status syscall.WaitStatus
+
+		if status, ok = err.(*exec.ExitError).Sys().(syscall.WaitStatus); !ok {
+			return context.Format(
+				err,
+				`unable to wait command execution`,
 			)
 		}
 
@@ -245,17 +257,22 @@ func (execution *Execution) Wait() error {
 			execution.logger(
 				execution.command.GetArgs(),
 				InternalDebug,
-				[]byte(fmt.Sprintf(
-					`exit code %d`,
-					executil.GetExitStatus(err),
-				)),
+				[]byte(fmt.Sprintf(`exit code %d`, status.ExitStatus())),
 			)
 		}
 
-		return &executil.Error{
-			RunErr: err,
-			Cmd:    execution.command,
+		var output []string
+
+		for _, data := range execution.combinedStreams {
+			output = append(output, fmt.Sprintf("<%s> %s", data.Stream, data.Data))
 		}
+
+		return context.
+			Describe("output", strings.Join(output, "\n")).
+			Format(
+				err,
+				"execution completed with non-zero exit code",
+			)
 	}
 
 	if execution.closer != nil {
