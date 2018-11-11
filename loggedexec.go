@@ -11,6 +11,7 @@ import (
 	"sync"
 	"syscall"
 
+	"github.com/acarl005/stripansi"
 	"github.com/reconquest/callbackwriter-go"
 	"github.com/reconquest/karma-go"
 	"github.com/reconquest/lineflushwriter-go"
@@ -264,11 +265,18 @@ func (execution *Execution) Wait() error {
 		var output []string
 
 		for _, data := range execution.combinedStreams {
-			output = append(output, fmt.Sprintf("<%s> %s", data.Stream, data.Data))
+			output = append(output, string(data.Data))
+		}
+
+		if len(output) > 0 {
+			err = karma.Format(
+				stripansi.Strip(strings.Join(output, "")),
+				err.Error(),
+			)
 		}
 
 		return context.
-			Describe("output", "\n"+strings.Join(output, "")).
+			Describe("code", status.ExitStatus()).
 			Format(
 				err,
 				"execution completed with non-zero exit code",
