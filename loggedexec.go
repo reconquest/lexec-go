@@ -268,7 +268,7 @@ func (execution *Execution) Wait() error {
 		}
 
 		return context.
-			Describe("output", strings.Join(output, "\n")).
+			Describe("output", "\n"+strings.Join(output, "")).
 			Format(
 				err,
 				"execution completed with non-zero exit code",
