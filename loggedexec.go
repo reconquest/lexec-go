@@ -98,6 +98,14 @@ func Loggerf(logger func(string, ...interface{})) Logger {
 	}
 }
 
+func LoggerNoOutput(logger Logger) Logger {
+	return func(command []string, stream Stream, data []byte) {
+		if stream == InternalDebug {
+			logger(command, stream, data)
+		}
+	}
+}
+
 // NewExec creates new execution object, that is used to start command and
 // setupStreams stdout/stderr/stdin streams.
 //
@@ -351,6 +359,12 @@ func (execution *Execution) String() string {
 
 func (execution *Execution) NoLog() *Execution {
 	execution.logger = nil
+
+	return execution
+}
+
+func (execution *Execution) NoStdLog() *Execution {
+	execution.logger = LoggerNoOutput(execution.logger)
 
 	return execution
 }
