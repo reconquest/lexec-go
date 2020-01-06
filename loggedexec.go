@@ -278,7 +278,7 @@ func (execution *Execution) Wait() error {
 
 		if len(output) > 0 {
 			err = karma.Format(
-				stripansi.Strip(strings.Join(output, "")),
+				strings.TrimSpace(stripansi.Strip(strings.Join(output, ""))),
 				err.Error(),
 			)
 		}
