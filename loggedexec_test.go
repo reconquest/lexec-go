@@ -17,8 +17,8 @@ func TestReturnsEmptyOutputWhenCommandReturnsNothing(t *testing.T) {
 		``,
 		``,
 		[]string{
-			`{true} <exec> ["true"] start`,
-			`{true} <exec> ["true"] exit code 0`,
+			`launch | true`,
+			`finish | true -> exit 0`,
 		},
 		nil,
 	)
@@ -31,9 +31,9 @@ func TestReturnsAndLogsLineOnStdout(t *testing.T) {
 		"1\n",
 		``,
 		[]string{
-			`{echo} <exec> ["echo" "1"] start`,
-			"{echo} <stdout> 1",
-			`{echo} <exec> ["echo" "1"] exit code 0`,
+			`launch | echo 1`,
+			"stdout |  1",
+			`finish | echo 1 -> exit 0`,
 		},
 		nil,
 	)
@@ -46,9 +46,9 @@ func TestReturnsAndLogsLineOnStderr(t *testing.T) {
 		``,
 		"1\n",
 		[]string{
-			`{sh} <exec> ["sh" "-c" "echo 1 >&2"] start`,
-			"{sh} <stderr> 1",
-			`{sh} <exec> ["sh" "-c" "echo 1 >&2"] exit code 0`,
+			`launch | sh -c "echo 1 >&2"`,
+			"stderr |  1",
+			`finish | sh -c "echo 1 >&2" -> exit 0`,
 		},
 		nil,
 	)
@@ -61,9 +61,9 @@ func TestReturnsAndLogsLineWithoutNewline(t *testing.T) {
 		"1",
 		``,
 		[]string{
-			`{echo} <exec> ["echo" "-n" "1"] start`,
-			"{echo} <stdout> 1",
-			`{echo} <exec> ["echo" "-n" "1"] exit code 0`,
+			`launch | echo -n 1`,
+			"stdout |  1",
+			`finish | echo -n 1 -> exit 0`,
 		},
 		nil,
 	)
@@ -76,9 +76,9 @@ func TestCanPassStdinToCommand(t *testing.T) {
 		"xxx test",
 		``,
 		[]string{
-			`{sed} <exec> ["sed" "s/^/xxx /"] start`,
-			"{sed} <stdout> xxx test",
-			`{sed} <exec> ["sed" "s/^/xxx /"] exit code 0`,
+			`launch | sed "s/^/xxx /"`,
+			"stdout |  xxx test",
+			`finish | sed "s/^/xxx /" -> exit 0`,
 		},
 		bytes.NewBufferString(`test`),
 	)

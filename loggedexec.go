@@ -90,17 +90,29 @@ type Logger func(command []string, stream Stream, data []byte)
 // Logger function.
 func Loggerf(logger func(string, ...interface{})) Logger {
 	return func(command []string, stream Stream, data []byte) {
-		if stream == InternalDebug {
-			logger(`{%s} <exec> %q %s`, command[0], command, string(data))
-		} else {
-			logger(`{%s} <%s> %s`, command[0], stream, string(data))
+		switch stream {
+		case Launch:
+			logger(
+				`%-6s | %s`,
+				stream, FormatShellCommand(command),
+			)
+		case Finish:
+			logger(
+				`%-6s | %s -> %s`,
+				stream, FormatShellCommand(command), data,
+			)
+		default:
+			logger(
+				`%-6s |  %s`,
+				stream, string(data),
+			)
 		}
 	}
 }
 
 func LoggerNoOutput(logger Logger) Logger {
 	return func(command []string, stream Stream, data []byte) {
-		if stream == InternalDebug {
+		if stream == Launch || stream == Finish {
 			logger(command, stream, data)
 		}
 	}
@@ -217,8 +229,8 @@ func (execution *Execution) Start() error {
 	if execution.logger != nil {
 		execution.logger(
 			execution.command.GetArgs(),
-			InternalDebug,
-			[]byte(`start`),
+			Launch,
+			[]byte(`launch`),
 		)
 	}
 
@@ -265,8 +277,8 @@ func (execution *Execution) Wait() error {
 		if execution.logger != nil {
 			execution.logger(
 				execution.command.GetArgs(),
-				InternalDebug,
-				[]byte(fmt.Sprintf(`exit code %d`, status.ExitStatus())),
+				Finish,
+				[]byte(fmt.Sprintf(`exit %d`, status.ExitStatus())),
 			)
 		}
 
@@ -298,8 +310,8 @@ func (execution *Execution) Wait() error {
 	if execution.logger != nil {
 		execution.logger(
 			execution.command.GetArgs(),
-			InternalDebug,
-			[]byte(`exit code 0`),
+			Finish,
+			[]byte(`exit 0`),
 		)
 	}
 

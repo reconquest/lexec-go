@@ -41,8 +41,8 @@ func ExampleLoggedExec() {
 	fmt.Printf("OUT: %s\n", stdout)
 
 	// Output:
-	// LOG: {wc} <exec> ["wc" "-l"] start
-	// LOG: {wc} <stdout> 3
-	// LOG: {wc} <exec> ["wc" "-l"] exit code 0
+	// LOG: launch | wc -l
+	// LOG: stdout |  3
+	// LOG: finish | wc -l -> exit 0
 	// OUT: 3
 }

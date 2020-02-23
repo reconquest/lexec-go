@@ -15,8 +15,11 @@ const (
 	// Stdout is ID for execution stderr.
 	Stderr Stream = `stderr`
 
-	// InternalDebug is ID for logging internal debug messages.
-	InternalDebug Stream = `exec`
+	// Start is ID for execution start.
+	Launch Stream = `launch`
+
+	// Fininsh is ID for execution finish.
+	Finish Stream = `finish`
 )
 
 // StreamData represents execution output stream data.
