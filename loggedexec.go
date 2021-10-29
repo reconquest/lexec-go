@@ -47,9 +47,7 @@ type Command interface {
 	GetArgs() []string
 }
 
-var (
-	_ Command = (*command)(nil)
-)
+var _ Command = (*command)(nil)
 
 type command struct {
 	*exec.Cmd
@@ -251,6 +249,8 @@ func (execution *Execution) Start() error {
 }
 
 // Wait will wait for command to finish.
+// Wait can return ExitStatusError which can be checked using IsExitStatus(),
+// the exitcode can be obtained using GetExitStatus().
 func (execution *Execution) Wait() error {
 	err := execution.command.Wait()
 	if err != nil {
@@ -295,12 +295,15 @@ func (execution *Execution) Wait() error {
 			)
 		}
 
-		return context.
-			Describe("code", status.ExitStatus()).
-			Format(
-				err,
-				"execution completed with non-zero exit code",
-			)
+		return ExitStatusError{
+			Karma: context.
+				Describe("code", status.ExitStatus()).
+				Format(
+					err,
+					"execution completed with non-zero exit code",
+				),
+			ExitStatus: status.ExitStatus(),
+		}
 	}
 
 	if execution.closer != nil {
